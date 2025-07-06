@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Groq Sandbox Setup in 5 Minutes</title>
+    
+    <!-- Tailwind CSS for rapid, responsive styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /*
+        ========================================
+        CUSTOM CSS STYLES
+        - Defines the overall theme, fonts, and custom animations.
+        - Instructors can easily tweak colors and transition timings here.
+        ========================================
+        */
+
+        /* Base styling */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827; /* Dark blue-gray background */
+            color: #d1d5db; /* Light gray text */
+        }
+
+        /* Custom accent color variables for easy theme changes */
+        :root {
+            --accent-color: #10b981; /* Emerald green */
+            --accent-hover-color: #059669;
+            --card-bg-color: #1f2937; /* Lighter gray for cards */
+            --border-color: #374151;
+        }
+
+        /*
+        ----------------------------------------
+        Panel Sliding Transition
+        - Panels are hidden by default, shifted off-screen to the right.
+        - The 'active' class makes them visible and slides them into view.
+        - Transition timing can be adjusted here.
+        ----------------------------------------
+        */
+        .content-panel {
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.4s ease-in-out;
+            transform: translateX(30px);
+            opacity: 0;
+            display: none; /* Use display none to prevent interaction when hidden */
+        }
+
+        .content-panel.active {
+            transform: translateX(0);
+            opacity: 1;
+            display: block;
+        }
+        
+        /*
+        ----------------------------------------
+        Code Block Styling
+        - Standardized look for all <pre> code snippets.
+        ----------------------------------------
+        */
+        pre {
+            background-color: #0d1117; /* Even darker for code */
+            border: 1px solid var(--border-color);
+            color: #c9d1d9;
+        }
+
+        /*
+        ----------------------------------------
+        Card Flip Animation for Error Sandbox
+        - Uses 3D transforms to create the flip effect.
+        - The parent holds the 3D space, and the inner element flips.
+        ----------------------------------------
+        */
+        .flip-card {
+            perspective: 1000px; /* 3D space for the flip */
+        }
+        .flip-card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+        .flip-card.flipped .flip-card-inner {
+            transform: rotateY(180deg); /* The actual flip transformation */
+        }
+        .flip-card-front, .flip-card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden; /* Hide the back of the card when facing away */
+            backface-visibility: hidden;
+        }
+        .flip-card-back {
+            transform: rotateY(180deg); /* Position the back face correctly */
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-8 md:mb-12">
+            <h1 class="text-3xl md:text-4xl font-bold text-white">Groq Sandbox Setup in 5 Minutes</h1>
+            <p class="text-lg text-gray-400 mt-2">An interactive guide to get you started with the Groq API.</p>
+        </header>
+
+        <!-- 
+        ========================================
+        MAIN LAYOUT
+        - Uses Flexbox for a responsive layout.
+        - On mobile (default), it's a single column (stacked).
+        - On medium screens and up (md:), it becomes a two-column layout.
+        ========================================
+        -->
+        <div class="flex flex-col md:flex-row gap-8">
+
+            <!-- 
+            ========================================
+            STEP NAVIGATOR
+            - A vertical list of buttons on desktop.
+            - A horizontal row on mobile.
+            - Each button corresponds to a content panel.
+            - ARIA labels enhance accessibility.
+            ========================================
+            -->
+            <aside id="step-navigator" class="w-full md:w-1/4 flex md:flex-col gap-2">
+                <button data-step="1" class="step-btn text-left w-full p-3 rounded-lg font-medium transition-colors duration-200" aria-label="Go to step 1: Create Account">1. Create Account</button>
+                <button data-step="2" class="step-btn text-left w-full p-3 rounded-lg font-medium transition-colors duration-200" aria-label="Go to step 2: Get API Key">2. Get API Key</button>
+                <button data-step="3" class="step-btn text-left w-full p-3 rounded-lg font-medium transition-colors duration-200" aria-label="Go to step 3: Install SDK">3. Install SDK</button>
+                <button data-step="4" class="step-btn text-left w-full p-3 rounded-lg font-medium transition-colors duration-200" aria-label="Go to step 4: First API Call">4. First Call</button>
+                <button data-step="5" class="step-btn text-left w-full p-3 rounded-lg font-medium transition-colors duration-200" aria-label="Go to step 5: Error Dashboard">5. Error Dashboard</button>
+            </aside>
+
+            <!-- 
+            ========================================
+            CONTENT AREA
+            - This container holds all the step panels.
+            - JavaScript will manage showing/hiding the correct panel.
+            ========================================
+            -->
+            <main class="w-full md:w-3/4 bg-[var(--card-bg-color)] rounded-xl p-6 md:p-8 min-h-[400px] relative overflow-hidden">
+
+                <!-- STEP 1: ACCOUNT -->
+                <div id="panel-1" class="content-panel" aria-hidden="true">
+                    <h2 class="text-2xl font-bold text-white mb-4">Step 1: Create Your GroqCloud Account</h2>
+                    <p class="mb-4">First things first, you'll need an account to access the API. It's free to sign up and get started.</p>
+                    <a href="https://console.groq.com/" target="_blank" class="inline-block bg-[var(--accent-color)] hover:bg-[var(--accent-hover-color)] text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200">
+                        Go to GroqCloud Console &rarr;
+                    </a>
+                    <p class="mt-4 text-sm text-gray-400">Click the link to open the GroqCloud Console in a new tab. Sign up with your Google or GitHub account, and then come back here for the next step.</p>
+                </div>
+
+                <!-- STEP 2: API KEY -->
+                <div id="panel-2" class="content-panel" aria-hidden="true">
+                    <h2 class="text-2xl font-bold text-white mb-4">Step 2: Get Your API Key</h2>
+                    <p class="mb-4">Your API key authenticates your requests. You can create and manage keys from your dashboard.</p>
+                    <div class="relative">
+                        <input id="api-key-input" type="text" readonly value="gsk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" class="w-full bg-[#0d1117] border border-[var(--border-color)] rounded-lg p-3 pr-20 font-mono text-sm" aria-label="Your API Key">
+                        <button onclick="copyToClipboard('api-key-input', this)" class="absolute top-1/2 right-2 -translate-y-1/2 bg-gray-600 hover:bg-gray-500 text-white font-bold py-1 px-3 rounded-md text-sm transition-colors duration-200" aria-label="Copy API Key">Copy</button>
+                    </div>
+                    <!-- API Key Security Tooltip -->
+                    <div class="mt-4 flex items-start gap-3 p-4 bg-blue-900/30 border border-blue-700 rounded-lg">
+                        <div class="flex-shrink-0 text-blue-400 mt-1">
+                           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.73 18.27a.5.5 0 0 0-.44-.27H2.71a.5.5 0 0 0-.44.27l-1.5 2.5a.5.5 0 0 0 .44.73h22.58a.5.5 0 0 0 .44-.73l-1.5-2.5z"></path><path d="M12 2v14"></path><path d="m9 12 3 3 3-3"></path></svg>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-white">Security Best Practice</h3>
+                            <p class="text-sm text-blue-300">Never expose your API key in client-side code. Use environment variables on your server. For example, in your terminal: <code class="bg-black/50 px-1 py-0.5 rounded">export GROQ_API_KEY='your_key_here'</code></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 3: INSTALL SDK -->
+                <div id="panel-3" class="content-panel" aria-hidden="true">
+                    <h2 class="text-2xl font-bold text-white mb-4">Step 3: Install the Python SDK</h2>
+                    <p class="mb-4">The official Python library makes it easy to interact with the Groq API. Install it using pip.</p>
+                    <div class="relative">
+                        <pre id="sdk-install-code" class="p-4 rounded-lg overflow-x-auto"><code class="language-bash">pip install groq</code></pre>
+                        <button onclick="copyToClipboard('sdk-install-code', this)" class="absolute top-4 right-4 bg-gray-600 hover:bg-gray-500 text-white font-bold py-1 px-3 rounded-md text-sm transition-colors duration-200" aria-label="Copy install command">Copy</button>
+                    </div>
+                </div>
+                
+                <!-- STEP 4: FIRST CALL & LATENCY SIMULATOR -->
+                <div id="panel-4" class="content-panel" aria-hidden="true">
+                    <h2 class="text-2xl font-bold text-white mb-4">Step 4: Make Your First API Call</h2>
+                    <p class="mb-4">Use this basic script to test your setup. It initializes the client and sends a simple chat completion request.</p>
+                    <div class="relative mb-6">
+                        <pre id="api-call-code" class="p-4 rounded-lg overflow-x-auto"><code class="language-python">
+import os
+from groq import Groq
+
+client = Groq(
+    # This is the default and can be omitted
+    api_key=os.environ.get("GROQ_API_KEY"),
+)
+
+chat_completion = client.chat.completions.create(
+    messages=[
+        {
+            "role": "user",
+            "content": "Explain the importance of low latency LLMs",
+        }
+    ],
+    model="llama3-8b-8192",
+)
+
+print(chat_completion.choices[0].message.content)
+                        </code></pre>
+                        <button onclick="copyToClipboard('api-call-code', this)" class="absolute top-4 right-4 bg-gray-600 hover:bg-gray-500 text-white font-bold py-1 px-3 rounded-md text-sm transition-colors duration-200" aria-label="Copy Python code">Copy</button>
+                    </div>
+
+                    <!-- Live Latency Simulator -->
+                    <div class="border-t border-[var(--border-color)] pt-6">
+                        <h3 class="text-xl font-bold text-white mb-3">Live Latency Simulator</h3>
+                        <p class="text-sm text-gray-400 mb-4">Click below to simulate a request and see Groq's impressive performance.</p>
+                        <button id="run-demo-btn" class="bg-[var(--accent-color)] hover:bg-[var(--accent-hover-color)] text-white font-bold py-2 px-4 rounded-lg transition-all duration-200" aria-label="Run latency simulation">Run Demo</button>
+                        
+                        <div id="demo-results" class="mt-4 space-y-3 hidden">
+                            <!-- Progress Bar -->
+                            <div class="w-full bg-gray-700 rounded-full h-2.5">
+                                <div id="progress-bar" class="bg-[var(--accent-color)] h-2.5 rounded-full" style="width: 0%; transition: width 1.5s ease-in-out;"></div>
+                            </div>
+                            <!-- Results Display -->
+                            <div id="results-text" class="flex justify-between items-center opacity-0 transition-opacity duration-500">
+                                <p><strong>Performance:</strong> <span id="tokens-sec" class="font-mono text-lg text-white">...</span> tokens/sec</p>
+                                <p><strong>Est. Cost:</strong> $<span id="cost-usd" class="font-mono text-lg text-white">...</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 5: ERROR DASHBOARD -->
+                <div id="panel-5" class="content-panel" aria-hidden="true">
+                    <h2 class="text-2xl font-bold text-white mb-4">Error Sandbox</h2>
+                    <p class="mb-4">Understanding API errors is key to robust development. Select an error code to see its cause and how to fix it.</p>
+                    
+                    <div class="flex items-center gap-4 mb-6">
+                        <label for="error-selector" class="font-medium text-white">Select an Error:</label>
+                        <select id="error-selector" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" aria-label="Select an error code to view details">
+                            <option value="401">401 Unauthorized</option>
+                            <option value="429">429 Rate Limit Exceeded</option>
+                            <option value="500">500 Internal Server Error</option>
+                        </select>
+                    </div>
+
+                    <!-- Flippable Card -->
+                    <div id="error-card" class="flip-card h-48 w-full cursor-pointer" onclick="this.classList.toggle('flipped')" aria-live="polite" title="Click to flip for details">
+                        <div class="flip-card-inner rounded-xl">
+                            <!-- Front of Card -->
+                            <div id="error-card-front" class="flip-card-front bg-red-900/50 border border-red-700 p-6 rounded-xl flex flex-col justify-center items-center">
+                                <!-- Content updated by JS -->
+                            </div>
+                            <!-- Back of Card -->
+                            <div id="error-card-back" class="flip-card-back bg-gray-700 p-6 rounded-xl flex flex-col justify-center">
+                                <!-- Content updated by JS -->
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-center text-sm text-gray-400 mt-2">Click the card to flip for details.</p>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <script>
+    /*
+    ========================================
+    JAVASCRIPT LOGIC
+    - Handles all interactivity on the page.
+    ========================================
+    */
+    document.addEventListener('DOMContentLoaded', function() {
+
+        // --- Element Selections ---
+        const stepButtons = document.querySelectorAll('.step-btn');
+        const contentPanels = document.querySelectorAll('.content-panel');
+        const runDemoBtn = document.getElementById('run-demo-btn');
+        const errorSelector = document.getElementById('error-selector');
+        const errorCard = document.getElementById('error-card');
+        const errorCardFront = document.getElementById('error-card-front');
+        const errorCardBack = document.getElementById('error-card-back');
+
+        // --- State ---
+        // Default active step can be changed here (e.g., to 1)
+        let activeStep = 1;
+
+        // --- Error Data ---
+        // Mock data for the error sandbox. Can be expanded.
+        const errorData = {
+            '401': {
+                title: "401 Unauthorized",
+                cause: "Your API key is missing, invalid, or expired.",
+                fix: "Verify your API key is correct and included in the 'Authorization' header as a Bearer token. Generate a new key from the GroqCloud dashboard if needed."
+            },
+            '429': {
+                title: "429 Rate Limit Exceeded",
+                cause: "You've sent too many requests in a short period.",
+                fix: "Implement exponential backoff in your code to retry requests after a delay. Check the 'Retry-After' header in the response for a specific wait time. Consider upgrading your plan for higher limits."
+            },
+            '500': {
+                title: "500 Internal Server Error",
+                cause: "An unexpected error occurred on Groq's servers.",
+                fix: "This is usually a temporary issue. Wait a few moments and retry your request. If the problem persists, check the Groq status page or contact support."
+            }
+        };
+
+        /*
+        ----------------------------------------
+        Function: updateActiveStep
+        - Manages the visual state of the navigator and content panels.
+        - Hides all panels, then shows the one corresponding to the new step.
+        - Updates button styles to reflect the active state.
+        ----------------------------------------
+        */
+        function updateActiveStep(newStep) {
+            activeStep = newStep;
+
+            // Update button styles
+            stepButtons.forEach(btn => {
+                if (btn.dataset.step == activeStep) {
+                    btn.style.backgroundColor = 'var(--accent-color)';
+                    btn.style.color = 'white';
+                } else {
+                    btn.style.backgroundColor = 'var(--card-bg-color)';
+                    btn.style.color = '#d1d5db';
+                }
+            });
+
+            // Update panel visibility
+            contentPanels.forEach(panel => {
+                if (panel.id === `panel-${activeStep}`) {
+                    // Using setTimeout to ensure the display property is set before the transition starts
+                    setTimeout(() => {
+                        panel.classList.add('active');
+                        panel.setAttribute('aria-hidden', 'false');
+                    }, 0);
+                } else {
+                    panel.classList.remove('active');
+                    panel.setAttribute('aria-hidden', 'true');
+                }
+            });
+        }
+
+        /*
+        ----------------------------------------
+        Function: updateErrorCard
+        - Populates the front and back of the error card with data.
+        - Resets the flip animation when the selection changes.
+        ----------------------------------------
+        */
+        function updateErrorCard(errorCode) {
+            const data = errorData[errorCode];
+            if (!data) return;
+
+            // Update front of card
+            errorCardFront.innerHTML = `
+                <h3 class="text-2xl font-bold text-red-300">${data.title}</h3>
+                <p class="text-red-400">An error has occurred.</p>
+            `;
+
+            // Update back of card
+            errorCardBack.innerHTML = `
+                <h4 class="font-bold text-white">Common Cause:</h4>
+                <p class="text-sm mb-3">${data.cause}</p>
+                <h4 class="font-bold text-white">How to Fix:</h4>
+                <p class="text-sm">${data.fix}</p>
+            `;
+
+            // If the card is flipped, flip it back to show the new error
+            if (errorCard.classList.contains('flipped')) {
+                errorCard.classList.remove('flipped');
+            }
+        }
+        
+        // --- Event Listeners ---
+
+        // Step Navigator Buttons
+        stepButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const step = parseInt(button.dataset.step);
+                updateActiveStep(step);
+            });
+        });
+
+        // Latency Simulator Button
+        runDemoBtn.addEventListener('click', () => {
+            const demoResults = document.getElementById('demo-results');
+            const progressBar = document.getElementById('progress-bar');
+            const resultsText = document.getElementById('results-text');
+            const tokensSecEl = document.getElementById('tokens-sec');
+            const costUsdEl = document.getElementById('cost-usd');
+
+            // Reset and start simulation
+            runDemoBtn.disabled = true;
+            runDemoBtn.textContent = 'Simulating...';
+            demoResults.classList.remove('hidden');
+            resultsText.style.opacity = 0;
+            progressBar.style.width = '0%';
+
+            // Animate progress bar
+            setTimeout(() => {
+                progressBar.style.width = '100%';
+            }, 100);
+
+            // After progress bar animation, show results
+            setTimeout(() => {
+                // Mock data: Generate random but realistic-looking numbers
+                const tokensPerSecond = (Math.random() * (550 - 350) + 350).toFixed(2);
+                const cost = (Math.random() * (0.008 - 0.002) + 0.002).toFixed(5);
+                
+                tokensSecEl.textContent = tokensPerSecond;
+                costUsdEl.textContent = cost;
+                
+                resultsText.style.opacity = 1;
+                runDemoBtn.disabled = false;
+                runDemoBtn.textContent = 'Run Demo Again';
+            }, 1600); // Must be slightly longer than progress bar transition
+        });
+
+        // Error Sandbox Selector
+        errorSelector.addEventListener('change', (e) => {
+            updateErrorCard(e.target.value);
+        });
+
+        // --- Initialization ---
+        // Set the initial state on page load
+        updateActiveStep(1);
+        updateErrorCard('401'); // Initialize the error card
+    });
+
+    /*
+    ----------------------------------------
+    Global Function: copyToClipboard
+    - A reusable utility to copy text from an element to the clipboard.
+    - Works for both input fields and elements like <pre>.
+    - Provides visual feedback to the user on the button.
+    ----------------------------------------
+    */
+    function copyToClipboard(elementId, buttonElement) {
+        const element = document.getElementById(elementId);
+        let textToCopy = '';
+
+        // Handle different element types
+        if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
+            textToCopy = element.value;
+        } else {
+            textToCopy = element.innerText;
+        }
+
+        // Create a temporary textarea to perform the copy command
+        const textArea = document.createElement('textarea');
+        textArea.value = textToCopy;
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            // Provide feedback
+            buttonElement.textContent = 'Copied!';
+            setTimeout(() => {
+                buttonElement.textContent = 'Copy';
+            }, 2000);
+        } catch (err) {
+            console.error('Failed to copy text: ', err);
+            buttonElement.textContent = 'Failed!';
+             setTimeout(() => {
+                buttonElement.textContent = 'Copy';
+            }, 2000);
+        }
+        document.body.removeChild(textArea);
+    }
+    </script>
+</body>
+</html>
